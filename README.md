@@ -1,4 +1,4 @@
-Very early C compilers and language
+## Very early C compilers and language
 Several years ago, Paul Vixie and Keith Bostic found a DECtape drive, attached it to a VAX, and offered to read old DECtapes. Even at the time, this was an antiquarian pursuit, and it presented an opportunity to mine beneath the raised floor of the computer room and unearth some of the DECtapes we'd stored since the early 1970s. Gradually, I've been curating some of this, and here offer some of the artifacts. Unfortunately existing tapes lack interesting things like earliest Unix OS source, but some indicative fossils have been prepared for exhibition.
  information: Warren Toomey, now at Bond University, has managed to make one of the compilers (last1120c, see below) compile itself using a First/Second edition Unix emulator for the PDP-11; see his ftp-available directory. More generally, it's worth looking into the PDP-11 Unix Preservation Society pages for sources and simulators.
 
@@ -34,9 +34,9 @@ The source for the last1120c compiler also has a subsidiary table for each pass 
 
 Finally, there is the cvopt program, used to convert the nonce-language expression template tables into assembler. With a lot of handwork, there is probably enough material to construct a working version of the last1120c compiler, where "works" means "turns source into PDP-11 assembler." (See the top of the page for one who succeeded.)
 
-The links for the files are:
+### The links for the files are:
 
-last1120c
+**last1120c**
 c00.c
 c01.c
 c02.c
@@ -50,7 +50,8 @@ cctab.s
 sptab.s
 efftab.s
 cvopt.c
-prestruct-c
+
+**prestruct-c**
 c00.c
 c01.c
 c02.c
