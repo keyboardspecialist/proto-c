@@ -1,0 +1,7 @@
+# build artifacts
+*.o
+cfront
+# generated wasm/wat from the test suite
+tests/*.wasm
+tests/*.wat
+.DS_Store
