@@ -53,6 +53,12 @@ ok([0,1,5,10].every((n,i) => e.sumto(n) === [0,0,10,45][i]), 'goto loop sumto');
 ok(e.land(1,2) === 1 && e.land(1,0) === 0, 'logical & (1972 semantics)');
 
 // untyped globals: scalar + array (pointer-cell model) + extern access
+// B/BCPL semantics: an array name is a reassignable pointer cell + storage,
+// auto-initialized to point at the storage. Reassigning it (z = z+2, z = save)
+// is illegal under prestruct/c89's C-style decay but works here.
+e = build('bsem');
+ok(e.bsem() === 400, 'B-style reassignable array pointer (bsem=400)');
+
 e = build('data');
 ok(e.getn() === 42, 'global n=42');
 ok([0,1,2].every(i => e.getv(i) === [10,20,30][i]), 'global v[] via extern v[]');
