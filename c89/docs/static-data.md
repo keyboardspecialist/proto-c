@@ -32,7 +32,7 @@ Dialect notes:
 ## Compile
 
 ```
-./cfront static-data.c > out.wat
+./cfront-prestruct static-data.c > out.wat
 wat2wasm out.wat -o out.wasm
 ```
 

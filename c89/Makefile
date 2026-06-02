@@ -12,7 +12,7 @@ CFLAGS  ?= $(CSTD) $(WARN)
 
 OBJS = c00.o c01.o c02.o c03.o tables.o runtime.o wat.o
 
-cfront: $(OBJS)
+cfront-prestruct: $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $(OBJS)
 
 $(OBJS): cc.h
@@ -20,8 +20,8 @@ $(OBJS): cc.h
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 
-watcheck: cfront
+watcheck: cfront-prestruct
 	node tests/check.js
 
 clean:
-	rm -f $(OBJS) cfront tests/*.wat tests/*.wasm
+	rm -f $(OBJS) cfront-prestruct tests/*.wat tests/*.wasm

@@ -20,8 +20,8 @@ while [ $# -gt 0 ]; do
 done
 
 case "$dialect" in
-prestruct|struct|c89)      bin="$here/c89/cfront" ;;
-1120|last1120|older|b)     bin="$here/c89-1120/cfront" ;;
+prestruct|struct|c89)      bin="$here/c89/cfront-prestruct" ;;
+1120|last1120|older|b)     bin="$here/c89-1120/cfront-1120" ;;
 *) echo "cfront: unknown dialect '$dialect' (use prestruct|1120)" >&2; exit 2 ;;
 esac
 

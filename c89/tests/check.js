@@ -8,7 +8,7 @@ const cp = require('child_process');
 const path = require('path');
 
 const DIR = __dirname;
-const CFRONT = path.join(DIR, '..', 'cfront');
+const CFRONT = path.join(DIR, '..', 'cfront-prestruct');
 const WAT2WASM = process.env.WAT2WASM ||
 	`${process.env.HOME}/tools/wabt-1.0.36/bin/wat2wasm`;
 

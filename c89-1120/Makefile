@@ -1,4 +1,4 @@
-# Build the modernized prestruct-c front end (pass 1).
+# Build the modernized last1120-c front end (pass 1) + WAT backend.
 # The 1972 sources are pre-K&R: implicit int, K&R definitions, and int/pointer
 # interchange are intentional and legal under C89, so the warnings they trip
 # are silenced rather than "fixed" away.
@@ -12,7 +12,7 @@ CFLAGS  ?= $(CSTD) $(WARN)
 
 OBJS = c00.o c01.o c02.o c03.o tables.o runtime.o wat.o
 
-cfront: $(OBJS)
+cfront-1120: $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $(OBJS)
 
 $(OBJS): cc.h
@@ -20,8 +20,8 @@ $(OBJS): cc.h
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 
-watcheck: cfront
+watcheck: cfront-1120
 	node tests/check.js
 
 clean:
-	rm -f $(OBJS) cfront tests/*.wat tests/*.wasm
+	rm -f $(OBJS) cfront-1120 tests/*.wat tests/*.wasm

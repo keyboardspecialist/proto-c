@@ -11,7 +11,7 @@ discarded (see below).
 max(a, b) { if (a > b) return(a); return(b); }
 ```
 ```
-$ ./cfront tests/max.c
+$ ./cfront-prestruct tests/max.c
 (module
   (memory (export "memory") 2)
   (global $sp (mut i32) (i32.const 131072))
@@ -22,10 +22,10 @@ $ ./cfront tests/max.c
 ## Build & run
 
 ```
-make            # builds ./cfront
+make            # builds ./cfront-prestruct
 make watcheck   # compile+run the WAT regression suite in node
-./cfront f.c    # emit a WAT module to stdout
-./cfront -t f.c # dump parse trees instead (debugging)
+./cfront-prestruct f.c   # emit a WAT module (or ../cfront --dialect prestruct)
+./cfront-prestruct -t f.c # dump parse trees instead (debugging)
 ```
 
 Building `cfront` needs only a C89 compiler and libc. `make watcheck` also needs

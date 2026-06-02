@@ -6,10 +6,10 @@ compiler, predating structures. Front end ported to portable C89, with the WAT
 backend from `../c89/` adapted to last1120's conventions.
 
 ```
-make            # builds ./cfront
+make            # builds ./cfront-1120
 make watcheck   # compile+run the regression suite in node
-./cfront f.c    # emit a WAT module
-./cfront -t f.c # dump parse trees
+./cfront-1120 f.c   # emit a WAT module (or ../cfront --dialect 1120)
+./cfront-1120 -t f.c # dump parse trees
 ```
 
 ## Why a second compiler

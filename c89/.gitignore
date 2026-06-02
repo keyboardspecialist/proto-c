@@ -1,6 +1,6 @@
 # build artifacts
 *.o
-cfront
+cfront-prestruct
 # generated wasm/wat from the test suite
 tests/*.wasm
 tests/*.wat
