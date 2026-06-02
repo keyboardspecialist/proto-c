@@ -1,0 +1,32 @@
+#!/bin/sh
+# cfront - dialect dispatcher for the two modernized 1972 C compilers.
+#
+#   cfront [--dialect prestruct|1120] [-t] file.c
+#
+# prestruct (default): the newer compiler -- structures, floats, C-style array
+#                      decay.   (./c89/cfront)
+# 1120 / last1120:     the older PDP-11/20 compiler -- no structs, B/BCPL
+#                      reassignable array pointers.   (./c89-1120/cfront)
+
+here=$(cd "$(dirname "$0")" && pwd)
+dialect=prestruct
+
+while [ $# -gt 0 ]; do
+	case "$1" in
+	--dialect=*) dialect="${1#--dialect=}"; shift ;;
+	--dialect|-d) dialect="$2"; shift 2 ;;
+	*) break ;;
+	esac
+done
+
+case "$dialect" in
+prestruct|struct|c89)      bin="$here/c89/cfront" ;;
+1120|last1120|older|b)     bin="$here/c89-1120/cfront" ;;
+*) echo "cfront: unknown dialect '$dialect' (use prestruct|1120)" >&2; exit 2 ;;
+esac
+
+if [ ! -x "$bin" ]; then
+	echo "cfront: $bin not built -- run 'make'" >&2
+	exit 1
+fi
+exec "$bin" "$@"
