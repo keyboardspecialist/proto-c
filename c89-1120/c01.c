@@ -23,8 +23,10 @@ build(op)
 	dope = opdope[op];
 	if ((dope & 01) != 0) {
 		p2 = (word *)(*--cp);
-		t2 = p2[1];
-		d2 = p2[2];
+		if (p2) {		/* p2 == 0 is the 0-arg call marker */
+			t2 = p2[1];
+			d2 = p2[2];
+		}
 	}
 	p1 = (word *)(*--cp);
 	t1 = p1[1];
