@@ -491,14 +491,15 @@ word *p;
 
 	case 80:		/* assignment: lhs = rhs, value is rhs */
 	{
+		/* Keep the lhs address on the wasm operand stack (not in a scratch
+		 * local) so a side-effecting rhs -- e.g. c = *s++ -- can't clobber it. */
 		int lf = tflt(p);
 		char *s = lf ? "$f" : "$t";
-		gaddr((word *) p[3]);
-		cg("local.set $a ");
-		gval((word *) p[4], lf);	/* coerce rhs to lhs type */
-		cg("local.set %s local.get $a local.get %s ", s, s);
-		storeof((word *) p[3]);
-		cg("local.get %s ", s);
+		gaddr((word *) p[3]);		/* [addr] */
+		gval((word *) p[4], lf);	/* [addr, val]  (coerce rhs to lhs type) */
+		cg("local.tee %s ", s);		/* [addr, val], scratch = val */
+		storeof((word *) p[3]);		/* consumes [addr, val] */
+		cg("local.get %s ", s);		/* result = val */
 		return;
 	}
 
