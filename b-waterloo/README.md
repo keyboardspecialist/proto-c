@@ -47,9 +47,26 @@ make watcheck        # compile tests/*.b78 -> wasm, assemble, instantiate, asser
 `tests/check.js` covers `for`/`+=`, `repeat`/`break`, `next`, `do-while`,
 `&&`/`||`, range-case `switch` with `default`+`break`, and the f32 `#`-operators.
 
+## String library (host-provided)
+
+The B string primitives are supplied by the host as memory-aware imports rather
+than compiled — the compiler already lowers an undeclared `name(...)` to an
+`env` import, so a program just `extrn`s and calls them. B pointers are word
+indices, so the byte address of word-pointer `w` is `w*4`; strings are
+NUL-terminated, one char per byte:
+
+- `char(s, i)` — the i-th character of the string at `s`
+- `lchar(s, i, c)` — store `c` as the i-th character; returns `c`
+- `putstr(s)` — write the NUL-terminated string at `s`
+- `getstr(s)` — read one input line into the buffer at `s`
+
+The museum's `BWRuntime` (`lang-bw.mjs`) implements them; `tests/check.js`
+exercises `char`/`lchar` natively (`slen`, in-place `upper`).
+
 ## Pending
 
-`%file` inclusion and `#`-directives, manifest constants, BCD constants
-(`` `…` `` / `$'…'`), and the full B library (`printf`, `char`, `lchar`,
-unit-based I/O) are not yet implemented. Negative float *literals* (`-3.14`)
-negate the bit pattern rather than the value — use `0.0 #- x`.
+`printf` needs varargs, which the compiler does not yet support (each call site
+fixes an import's arity). `%file` inclusion and `#`-directives, manifest
+constants, BCD constants (`` `…` `` / `$'…'`), and unit-based file I/O are also
+unimplemented. Negative float *literals* (`-3.14`) negate the bit pattern rather
+than the value — use `0.0 #- x`.

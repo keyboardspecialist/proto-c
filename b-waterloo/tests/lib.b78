@@ -1,0 +1,17 @@
+/* B string library via extern primitives (char, lchar) supplied by the host */
+slen(s) {
+	auto i;
+	extrn char;
+	i = 0;
+	while (char(s, i) != 0)
+		i += 1;
+	return(i);
+}
+upper(s) {
+	auto i, c;
+	extrn char, lchar;
+	for (i = 0; (c = char(s, i)) != 0; i += 1)
+		if (c >= 'a' && c <= 'z')
+			lchar(s, i, c - 32);
+	return(s);
+}

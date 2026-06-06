@@ -54,5 +54,31 @@ ok(near(asF32(e.fadd()), 3.75), '#+ : 1.5 #+ 2.25 = 3.75');
 ok(e.fcmp() === 1, '#< : 3.14 #< 3.15');
 ok(near(asF32(e.favg(f32bits(3), f32bits(5))), 4.0), '#+ / #/ : favg(3,5)=4.0');
 
+// string library: char/lchar provided as host imports (the museum's BWRuntime).
+// B pointers are word indices, so the byte address of word-pointer w is w*4.
+function buildLib(name) {
+	const wat = path.join(DIR, `${name}.wat`);
+	const wasm = path.join(DIR, `${name}.wasm`);
+	fs.writeFileSync(wat, cp.execSync(`${CFRONT} ${path.join(DIR, name + '.b78')}`));
+	cp.execSync(`${WAT2WASM} ${wat} -o ${wasm}`);
+	let inst = null;
+	const mem = () => new Uint8Array(inst.exports.memory.buffer);
+	const env = {
+		char: (s, i) => mem()[(s >>> 0) * 4 + (i | 0)],
+		lchar: (s, i, c) => { mem()[(s >>> 0) * 4 + (i | 0)] = c & 0xff; return c & 0xff; },
+	};
+	inst = new WebAssembly.Instance(
+		new WebAssembly.Module(fs.readFileSync(wasm)), { env });
+	return inst.exports;
+}
+e = buildLib('lib');
+const M = new Uint8Array(e.memory.buffer);
+const putS = (w, str) => { let a = w * 4; for (const ch of str) M[a++] = ch.charCodeAt(0); M[a] = 0; };
+const getS = (w) => { let a = w * 4, s = ''; while (M[a]) s += String.fromCharCode(M[a++]); return s; };
+putS(100, 'hello');
+ok(e.slen(100) === 5, 'slen("hello")=5 via char()');
+e.upper(100);
+ok(getS(100) === 'HELLO', 'upper() in place via char()/lchar() -> HELLO');
+
 console.log(fails ? `\n${fails} FAILED` : '\nall passed');
 process.exit(fails ? 1 : 0);
