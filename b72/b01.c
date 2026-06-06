@@ -16,10 +16,7 @@ build(op)
 	t2 = 0;
 	d2 = 0;
 	t = 0;
-	if (op == 4) {		/* a[i] -> *(a + i*WORD)  (B word-indexed vectors) */
-		word *idx = (word *) cp[-1];	/* the index operand, top of cp */
-		cp[-1] = block(2, 42, 0, idx[2] + 1, (word) idx,
-			block(1, 21, 0, 0, (word) length(0)));	/* i * wordsize */
+	if (op == 4) {		/* a[i] -> *(a + i)  (B word-granular: no scaling) */
 		build(40);
 		op = 36;
 	}

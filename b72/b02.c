@@ -74,7 +74,7 @@ extdef()
 			int storage = gdata((nel ? nel : 1) * 4);
 			int ptr = galloc(buf, 4);
 			char pd[4];
-			putw4(pd, 0, storage);
+			putw4(pd, 0, storage >> 2);	/* B pointer = word index */
 			watdata(ptr, pd, 4);
 			if ((o = symbol()) == 1)	/* ; uninitialized */
 				return;

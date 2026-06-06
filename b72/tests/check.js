@@ -46,10 +46,18 @@ ok([1,2,3,9].every((n,i) => e.classify(n) === [3,2,1,0][i]),
 e = build('vec');
 ok(e.triangle() === 10, 'auto a 4; a[i]=i+1; sum(a,4)=10');
 
-// string literal: '*n' escape, EOT(04) terminator
+// B word pointers: bare arithmetic steps words (no scaling)
+e = build('ptr');
+ok(e.slide() === 400, 'reassignable vector slide (z = z + 2) -> 400');
+let m32 = new Int32Array(e.memory.buffer);
+m32[100] = 0; m32[101] = 0; m32[102] = 7; m32[103] = 9;   // word indices
+ok(e.firstne(100, 4) === 7, 'firstne via *p / p = p + 1 (word step)');
+
+// string literal: '*n' escape, EOT(04) terminator. A B string rvalue is the
+// WORD INDEX of its data, so the byte address is addr*4.
 e = build('hello');
 const m = new Uint8Array(e.memory.buffer);
-let addr = e.greeting() >>> 0, s = '';
+let addr = (e.greeting() >>> 0) * 4, s = '';
 for (let i = addr; m[i] !== 4 && i < addr + 64; i++) s += String.fromCharCode(m[i]);
 ok(s === 'Hi!\n', `string "Hi!*n" EOT-terminated -> ${JSON.stringify(s)}`);
 

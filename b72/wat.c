@@ -250,9 +250,10 @@ void func_emit(char *nm)
 	for (k = 0; k < g_nparam; k++)
 		mprintf("    local.get $fp i32.const %d i32.add local.get %d %s\n",
 			g_paramoff[k], k, g_paramflt[k] ? "f64.store" : "i32.store");
-	/* sized array locals: init the pointer cell to point at its storage */
+	/* sized array locals: init the pointer cell to point at its storage.
+	 * A B pointer value is a word index, so store (storage byte addr) >> 2. */
 	for (k = 0; k < g_narr; k++)
-		mprintf("    local.get $fp i32.const %d i32.add local.get $fp i32.const %d i32.add i32.store\n",
+		mprintf("    local.get $fp i32.const %d i32.add local.get $fp i32.const %d i32.add i32.const 2 i32.shr_u i32.store\n",
 			g_arrcell[k], g_arrstore[k]);
 	if (fbuf)
 		bput(&mbuf, &mcap, &mlen, fbuf, flen);
@@ -320,8 +321,9 @@ word *p;
 		error("bad storage class %d", (int) p[3]);
 		return;
 
-	case 36:		/* *x : address is the pointer value */
+	case 36:		/* *x : address is the pointer value (word index -> byte) */
 		gexpr((word *) p[3]);
+		cg("i32.const 2 i32.shl ");
 		return;
 
 	case 35:		/* &x where x is itself an lvalue */
@@ -451,8 +453,8 @@ word *p;
 		cg("i32.const %d ", (int) p[3]);
 		return;
 
-	case 22:		/* string literal: its data address */
-		cg("i32.const %d ", (int) p[3]);
+	case 22:		/* string literal: word index of its data (B pointer) */
+		cg("i32.const %d ", (int) p[3] >> 2);
 		return;
 
 	case 23:		/* float constant (f64 bits stashed in p[3]) */
@@ -469,14 +471,16 @@ word *p;
 		loadof(p);
 		return;
 
-	case 36:		/* *p : load from pointer */
+	case 36:		/* *p : load word at the pointer (word index -> byte) */
 		gexpr((word *) p[3]);
+		cg("i32.const 2 i32.shl ");
 		loadof(p);
 		return;
 
-	case 35:		/* &x */
+	case 35:		/* &x : a B pointer is a word index (byte address >> 2) */
 	case 29:
 		gaddr((word *) p[3]);
+		cg("i32.const 2 i32.shr_u ");
 		return;
 
 	case 37:		/* unary - */
