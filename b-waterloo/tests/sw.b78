@@ -1,0 +1,13 @@
+/* full Waterloo switch: single value, ranges, relational bounds, fallthrough,
+   default. kind() classifies a byte. */
+kind(c) {
+	switch c {
+	case ' ':         return('S');
+	case '0' :: '9':  return('D');
+	case 'a' :: 'z':
+	case 'A' :: 'Z':  return('L');
+	case < ' ':       return('C');
+	case > 126:       return('H');
+	default:          return('P');
+	}
+}

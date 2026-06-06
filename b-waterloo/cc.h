@@ -87,6 +87,7 @@ void gretval();
 void sw_begin();
 void sw_case();
 void sw_caserange();
+void sw_casecmp();
 void sw_default();
 void sw_end();
 void cg_cap_begin();

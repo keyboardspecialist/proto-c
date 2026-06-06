@@ -48,6 +48,11 @@ ok(e.bor(0, 0) === 0 && e.bor(0, 5) === 1, '|| short-circuit');
 ok([50, 70, 95, 200].every((n, i) => e.grade(n) === [0, 1, 2, 9][i]),
 	'switch range cases + default + break : grade');
 
+// full switch: single value, range, relational bound, fallthrough, default
+e = build('sw');
+ok([32, 53, 120, 90, 10, 200, 33].map(c => String.fromCharCode(e.kind(c))).join("") === "SDLLCHP",
+	'switch single/range/relational-bound/fallthrough/default : kind');
+
 // f32 floats via #-operators
 e = build('float');
 ok(near(asF32(e.fadd()), 3.75), '#+ : 1.5 #+ 2.25 = 3.75');

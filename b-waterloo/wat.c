@@ -784,6 +784,8 @@ word *p;
 
 static int swval[MAXSEG], swseg[MAXSEG], nswcase, swdefault, swbrk;
 static int swrlo[MAXSEG], swrhi[MAXSEG], swrseg[MAXSEG], nswrange;
+/* relational-bound cases: case <op const : (op 0:< 1:<= 2:> 3:>=) */
+static int swcop[MAXSEG], swcval[MAXSEG], swcseg[MAXSEG], nswcmp;
 
 void sw_begin(expr, brk)
 word *expr;
@@ -805,6 +807,7 @@ word *expr;
 		seg[0][0] = '\0';
 	nswcase = 0;
 	nswrange = 0;
+	nswcmp = 0;
 	swdefault = -1;
 	swbrk = brk;
 }
@@ -839,6 +842,16 @@ void sw_caserange(lo, hi)
 	sw_newseg();
 }
 
+/* Waterloo relational-bound case: case <op const : (op 0:< 1:<= 2:> 3:>=) */
+void sw_casecmp(op, v)
+{
+	swcop[nswcmp] = op;
+	swcval[nswcmp] = v;
+	swcseg[nswcmp] = nseg;
+	nswcmp++;
+	sw_newseg();
+}
+
 void sw_default(void)
 {
 	swdefault = nseg;
@@ -858,6 +871,12 @@ void sw_end(void)
 	for (i = 0; i < nswrange; i++)			/* dispatch: lo <= sw <= hi */
 		cg("local.get $sw i32.const %d i32.ge_s local.get $sw i32.const %d i32.le_s i32.and br_if $Lc%d_%d ",
 			swrlo[i], swrhi[i], swbrk, swrseg[i]);
+	for (i = 0; i < nswcmp; i++) {			/* dispatch: sw <op> const */
+		char *rel = swcop[i] == 0 ? "i32.lt_s" : swcop[i] == 1 ? "i32.le_s"
+			  : swcop[i] == 2 ? "i32.gt_s" : "i32.ge_s";
+		cg("local.get $sw i32.const %d %s br_if $Lc%d_%d ",
+			swcval[i], rel, swbrk, swcseg[i]);
+	}
 	if (swdefault >= 0)
 		cg("br $Lc%d_%d ", swbrk, swdefault);
 	else

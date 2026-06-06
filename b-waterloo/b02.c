@@ -266,10 +266,21 @@ stmt:
 			return;
 		}
 
-		case 16:		/* case const :  | case lo :: hi :  (Waterloo range) */
+		case 16:		/* case const :  | case lo :: hi :  | case <op const :  (Waterloo) */
 		{
-			int lo, hi;
-			if ((o = symbol()) != 21)
+			int lo, hi, op;
+			o = symbol();
+			if (o == 62 || o == 63 || o == 64 || o == 65) {	/* relational bound: <= < >= > */
+				op = (o == 63) ? 0 : (o == 62) ? 1 : (o == 65) ? 2 : 3;
+				if ((o = symbol()) != 21)	/* the bound constant */
+					goto syntax;
+				lo = cval;
+				if ((o = symbol()) != 8)	/* : */
+					goto syntax;
+				sw_casecmp(op, lo);
+				goto stmt;
+			}
+			if (o != 21)
 				goto syntax;
 			lo = hi = cval;
 			if ((o = symbol()) != 8)	/* : */
