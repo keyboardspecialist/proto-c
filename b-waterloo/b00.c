@@ -37,12 +37,13 @@ char **argv;
 {
 	int ai = 1;
 
-	if (argc >= 2 && strcmp(argv[1], "-t") == 0) {
-		treedump = 1;
-		ai = 2;
+	while (ai < argc && argv[ai][0] == '-') {	/* leading flags: -t dump, -g debug */
+		if (strcmp(argv[ai], "-t") == 0) treedump = 1;
+		else if (strcmp(argv[ai], "-g") == 0) dbg = 1;
+		ai++;
 	}
 	if (argc < ai + 1) {
-		fprintf(stderr, "usage: cfront [-t] file\n");
+		fprintf(stderr, "usage: cfront [-t] [-g] file\n");
 		exit(1);
 	}
 	if ((fin = fopen(argv[ai], "r")) == NULL) {
@@ -684,6 +685,7 @@ int nerror;
 word *paraml;
 word *parame;
 int treedump;
+int dbg;
 
 word osbuf[OSSIZ];
 int osleft;

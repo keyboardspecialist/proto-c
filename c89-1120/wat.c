@@ -187,6 +187,26 @@ int g_autobottom;		/* most negative auto offset (<= 0) */
 int g_narr;			/* sized array locals needing pointer init */
 int g_arrcell[64], g_arrstore[64];
 
+/* ---- debug (-g): per-function frame-variable map, captured in blkhed ---- */
+int  g_ndbgvar;
+int  g_dbgvar_off[64], g_dbgvar_type[64], g_dbgvar_size[64];
+char g_dbgvar_name[64][NAMSIZ + 1];
+int  g_fnline, g_fnseen;	/* entry line of the current function (for the map) */
+
+/* Emit the per-statement debug hook (line marker + gated breakpoint call).
+ * Sets the exported $__line global, then calls the imported $__break(line, fp)
+ * only when the runtime has armed $__bp_armed. Frame base $fp is passed so the
+ * debugger can read locals. No-op unless compiled with -g. */
+void cg_break(int ln)
+{
+	if (!dbg || !infunc)
+		return;
+	if (!g_fnseen) { g_fnseen = 1; g_fnline = ln; }	/* first statement line */
+	cg("i32.const %d global.set $__line "
+	   "global.get $__bp_armed (if (then i32.const %d local.get $fp call $__break)) ",
+	   ln, ln);
+}
+
 /* ---- module framing ---- */
 
 void watmodopen(void)
@@ -204,6 +224,8 @@ void watmodclose(void)
 		return;
 	printf("(module\n");
 	/* imports must precede all non-import definitions (incl. memory/global) */
+	if (dbg)
+		printf("  (import \"env\" \"__break\" (func $__break (param i32) (param i32)))\n");
 	for (i = 0; i < ncall; i++) {
 		imported = 0;
 		for (j = 0; j < ndef; j++)
@@ -218,6 +240,10 @@ void watmodclose(void)
 	}
 	printf("  (memory (export \"memory\") 2)\n");
 	printf("  (global $sp (mut i32) (i32.const 131072))\n");
+	if (dbg) {
+		printf("  (global $__line (export \"__line\") (mut i32) (i32.const 0))\n");
+		printf("  (global $__bp_armed (export \"__bp_armed\") (mut i32) (i32.const 0))\n");
+	}
 	if (mbuf)
 		fputs(mbuf, stdout);
 	printf(")\n");
@@ -239,6 +265,15 @@ void func_emit(char *nm)
 	if (treedump)
 		return;
 	note_def(nm);
+	if (dbg) {	/* frame-variable map for the debugger's Locals view */
+		mprintf(";;#dbg {\"fn\":\"%s\",\"ln\":%d,\"vars\":[", nm, g_fnline);
+		for (k = 0; k < g_ndbgvar; k++)
+			mprintf("%s{\"n\":\"%s\",\"o\":%d,\"t\":%d,\"s\":%d}",
+				k ? "," : "", g_dbgvar_name[k],
+				g_dbgvar_off[k], g_dbgvar_type[k], g_dbgvar_size[k]);
+		mprintf("]}\n");
+		g_fnseen = 0;		/* reset for the next function */
+	}
 	mprintf("  (func $%s (export \"%s\")", nm, nm);
 	for (k = 0; k < g_nparam; k++)
 		mprintf(" (param %s)", g_paramflt[k] ? "f64" : "i32");

@@ -94,4 +94,12 @@ extern int g_rettype_flt;
 extern int treedump;
 int length();
 
+/* debug instrumentation (-g): per-statement line markers + breakpoint hook,
+ * and a per-function frame-variable map captured in blkhed for the IDE. */
+extern int dbg;
+void cg_break(int ln);
+extern int  g_ndbgvar, g_dbgvar_off[], g_dbgvar_type[], g_dbgvar_size[];
+extern char g_dbgvar_name[][NAMSIZ + 1];
+int rlength();
+
 #endif /* CC_H */

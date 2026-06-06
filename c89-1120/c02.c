@@ -100,11 +100,13 @@ syntax:
 
 statement(d)
 {
-	int o, o1, o2;
+	int o, o1, o2, ln;
 	word *np;
 
 stmt:
-	switch (o = symbol()) {
+	o = symbol();
+	ln = line;			/* source line of this statement (for -g) */
+	switch (o) {
 
 	case 0:
 		error("Unexpected EOF");
@@ -126,6 +128,8 @@ stmt:
 		return;
 
 	case 19:			/* keyword */
+		if (cval != 16 && cval != 20)	/* not a case/default label */
+			cg_break(ln);
 		switch (cval) {
 
 		case 10:		/* goto */
@@ -250,6 +254,7 @@ stmt:
 	}
 
 	peeksym = o;
+	cg_break(ln);			/* expression statement */
 	rcexpr(tree(), efftab);
 	goto semi;
 
@@ -338,6 +343,23 @@ blkhed()
 			}
 		}
 		cs = cs + pssiz;
+	}
+	/* capture the frame-variable map for the debugger (-g) before blkend
+	 * discards the names; autos and params are now class 5 with cs[2]=offset. */
+	g_ndbgvar = 0;
+	if (dbg) {
+		cs = hshtab;
+		hl = hshsiz;
+		while (hl--) {
+			if (cs[4] && cs[0] == 5 && g_ndbgvar < 64) {
+				namestr(&cs[4], g_dbgvar_name[g_ndbgvar]);
+				g_dbgvar_off[g_ndbgvar]  = (int) cs[2];
+				g_dbgvar_type[g_ndbgvar] = (int) cs[1];
+				g_dbgvar_size[g_ndbgvar] = rlength(cs[1]);
+				g_ndbgvar++;
+			}
+			cs = cs + pssiz;
+		}
 	}
 	g_framesize = pl - al;
 	g_autobottom = al;
