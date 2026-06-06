@@ -44,6 +44,11 @@ extdef()
 	namestr(&csym[4], buf);
 	switch (o = symbol()) {
 
+	case 80:			/* = : manifest constant (textual macro) */
+		csym[0] = 4;		/* manifest class */
+		csym[3] = (word) gettext();	/* raw text, re-lexed on each use */
+		return;
+
 	case 6:				/* ( : function */
 		function(buf);
 		return;
@@ -421,7 +426,7 @@ blkend()
 				char buf[NAMSIZ + 1];
 				error("%s undefined", namestr(&hshtab[i + 4], buf));
 			}
-			if (hshtab[i] != 1) {	/* not a keyword */
+			if (hshtab[i] != 1 && hshtab[i] != 4) {	/* keep keywords + manifests */
 				hshused--;
 				hshtab[i + 4] = 0;
 			}

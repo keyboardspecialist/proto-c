@@ -63,10 +63,28 @@ NUL-terminated, one char per byte:
 The museum's `BWRuntime` (`lang-bw.mjs`) implements them; `tests/check.js`
 exercises `char`/`lchar` natively (`slen`, in-place `upper`).
 
+`printf` is also host-provided but **variadic**, which the wasm import ABI
+(fixed arity) can't express directly. So the compiler special-cases calls to
+`printf`: it spills the args after the format string into a scratch buffer in
+memory and calls the host as `printf(fmt, argbuf, argc)`; the host walks the
+format pulling words from `argbuf` (`%d %c %s %o`). `tests/check.js` checks it.
+
+## Manifest constants
+
+`name = text;` at the top level defines a **textual macro** — the lexer stores
+the raw text and re-lexes it on each use (substitution happens before parsing,
+and nests). `blkend()` keeps manifests (like keywords) across definitions. They
+are commonly used for vector sizes: `SIZE = 5; auto v SIZE;`.
+
+## Source inclusion
+
+`%filename` as the first characters of a line splices that file into the input
+(an include stack in `c_getchar`, shared with manifest substitution). In the
+museum all workspace files are written to MEMFS so `%lib.b78` resolves.
+
 ## Pending
 
-`printf` needs varargs, which the compiler does not yet support (each call site
-fixes an import's arity). `%file` inclusion and `#`-directives, manifest
-constants, BCD constants (`` `…` `` / `$'…'`), and unit-based file I/O are also
+General user-defined varargs (printf is the only one handled), the `#`-card
+directives, BCD constants (`` `…` `` / `$'…'`), and unit-based file I/O remain
 unimplemented. Negative float *literals* (`-3.14`) negate the bit pattern rather
 than the value — use `0.0 #- x`.

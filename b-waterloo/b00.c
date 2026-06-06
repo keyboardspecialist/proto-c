@@ -264,6 +264,7 @@ com1:
 	{
 		char id[NAMSIZ];
 		int k = 0;
+		word *prev = csym;	/* caller's csym, preserved across a substitution */
 
 		while (ctab[c] == 123 | ctab[c] == 124) {
 			if (k < NAMSIZ)
@@ -281,6 +282,17 @@ com1:
 		if (csym[0] == 1) {	/* keyword */
 			cval = csym[1];
 			return (19);
+		}
+		if (csym[0] == 4) {	/* manifest constant -> substitute its text */
+			char *txt = (char *) csym[3];
+			csym = prev;	/* don't leave csym at the manifest: a const
+					 * expansion never resets it, and the caller
+					 * (e.g. declare) would clobber the text ptr */
+			src_push_char(peekc);		/* terminator: read after the text */
+			peekc = 0;
+			src_push_str(txt);		/* text: read first */
+			c = getchar();
+			goto loop;
 		}
 		return (20);
 	}
@@ -321,6 +333,32 @@ int floatop()
 	}
 	error("Bad floating-point operator");
 	return (54);
+}
+
+/* Capture a manifest constant's text: the characters after '=' up to ';'
+ * (leading/trailing blanks trimmed). Stored raw and re-lexed on each use, so
+ * a manifest is a textual macro, not a typed value. */
+char *gettext()
+{
+	char buf[1024];
+	int n = 0, c;
+
+	while ((c = getchar()) == ' ' || c == '\t')
+		;			/* skip leading blanks */
+	while (c != ';' && c != 0) {
+		if (n < 1023)
+			buf[n++] = c;
+		c = getchar();
+	}
+	while (n > 0 && (buf[n - 1] == ' ' || buf[n - 1] == '\t' ||
+			 buf[n - 1] == '\n' || buf[n - 1] == '\r'))
+		n--;
+	buf[n] = '\0';
+	{
+		char *s = (char *) malloc(n + 1);
+		strcpy(s, buf);
+		return s;
+	}
 }
 
 int getstr()

@@ -80,5 +80,39 @@ ok(e.slen(100) === 5, 'slen("hello")=5 via char()');
 e.upper(100);
 ok(getS(100) === 'HELLO', 'upper() in place via char()/lchar() -> HELLO');
 
+// printf: compiler marshals varargs to a buffer; host walks the format
+function buildIO(name) {
+	const wat = path.join(DIR, `${name}.wat`);
+	const wasm = path.join(DIR, `${name}.wasm`);
+	fs.writeFileSync(wat, cp.execSync(`${CFRONT} ${path.join(DIR, name + '.b78')}`));
+	cp.execSync(`${WAT2WASM} ${wat} -o ${wasm}`);
+	let inst = null, out = '';
+	const m = () => new Uint8Array(inst.exports.memory.buffer);
+	const rdstr = (wi) => { const mm = m(); let a = (wi >>> 0) * 4, s = ''; while (mm[a]) s += String.fromCharCode(mm[a++]); return s; };
+	const rdword = (wi) => { const mm = m(); const a = (wi >>> 0) * 4; return mm[a] | (mm[a + 1] << 8) | (mm[a + 2] << 16) | (mm[a + 3] << 24); };
+	const env = {
+		putchar: (c) => { out += String.fromCharCode(c & 0xff); return c & 0xff; },
+		printf: (fmt, argbuf, argc) => {
+			const mm = m(); let a = (fmt >>> 0) * 4, ai = 0;
+			const nx = () => rdword((argbuf >>> 0) + ai++);
+			while (mm[a] !== 0) {
+				const c = mm[a++];
+				if (c === 37) { const f = mm[a++];
+					if (f === 100) out += String(nx() | 0);
+					else if (f === 99) out += String.fromCharCode(nx() & 0xff);
+					else if (f === 111) out += (nx() >>> 0).toString(8);
+					else if (f === 115) out += rdstr(nx());
+					else out += String.fromCharCode(f);
+				} else out += String.fromCharCode(c);
+			}
+			return 0;
+		},
+	};
+	inst = new WebAssembly.Instance(new WebAssembly.Module(fs.readFileSync(wasm)), { env });
+	inst.exports.main();
+	return out;
+}
+ok(buildIO('printf') === 'n=42 c=X s=hi o=100\n', 'printf %d/%c/%s/%o -> n=42 c=X s=hi o=100');
+
 console.log(fails ? `\n${fails} FAILED` : '\nall passed');
 process.exit(fails ? 1 : 0);

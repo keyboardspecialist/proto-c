@@ -1,0 +1,7 @@
+/* printf: the compiler marshals the variadic args to a buffer; the host walks
+   the format. %d decimal, %c char, %s string, %o octal. */
+main() {
+	extrn printf;
+	printf("n=%d c=%c s=%s o=%o*n", 42, 'X', "hi", 64);
+	return(0);
+}

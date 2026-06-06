@@ -432,6 +432,24 @@ static int countargs(word *p)
 	return 1;
 }
 
+/* flatten a call argument tree (comma nodes) into out[], left to right */
+static int flatargs(word *p, word **out, int max, int n)
+{
+	if (p == 0 || p[0] == 0)
+		return n;
+	if (p[0] == 9) {
+		n = flatargs((word *) p[3], out, max, n);
+		n = flatargs((word *) p[4], out, max, n);
+		return n;
+	}
+	if (n < max)
+		out[n++] = p;
+	return n;
+}
+
+/* scratch buffer (byte addr) for marshalling printf's variadic args to memory */
+static int pf_scratch;
+
 static void loadof(word *p)
 {
 	if (tflt(p))
@@ -621,6 +639,27 @@ word *p;
 	{
 		word *fn = (word *) p[3];
 		namestr(&fn[5], buf);
+		/* printf is the one variadic library function. The wasm import ABI is
+		 * fixed-arity, so marshal the variadic args (everything after the
+		 * format string) into a scratch buffer in memory and call the host as
+		 * printf(fmt, argbuf, argc). The host walks the format + the buffer. */
+		if (strcmp(buf, "printf") == 0) {
+			word *args[32];
+			int na = flatargs((word *) p[4], args, 32, 0), k;
+			if (pf_scratch == 0)
+				pf_scratch = gdata(32 * 4);	/* up to 31 varargs */
+			for (k = 1; k < na; k++) {		/* spill args[1..] to memory */
+				cg("i32.const %d ", pf_scratch + (k - 1) * 4);
+				gexpr(args[k]);
+				cg("i32.store ");
+			}
+			if (na > 0) gexpr(args[0]); else cg("i32.const 0 ");	/* fmt */
+			cg("i32.const %d ", pf_scratch >> 2);	/* argbuf (word index) */
+			cg("i32.const %d ", na > 0 ? na - 1 : 0);	/* argc */
+			cg("call $printf ");
+			note_call("printf", 3);
+			return;
+		}
 		note_call(buf, countargs((word *) p[4]));
 		gargs((word *) p[4]);
 		cg("call $%s ", buf);

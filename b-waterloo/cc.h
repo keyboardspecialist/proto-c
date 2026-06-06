@@ -53,6 +53,10 @@ void  flush(void);
 void  error(char *s, ...);
 void  pname(word *name);
 char *namestr();
+void  src_push_str();		/* manifest substitution */
+void  src_push_char();
+void  src_push_file();		/* %filename inclusion */
+char *gettext();		/* capture manifest text (b00.c) -- returns char* */
 
 /* node builder + pointer-returning routines */
 word block(int n, word op, word t, word d, ...);
