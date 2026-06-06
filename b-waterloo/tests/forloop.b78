@@ -1,0 +1,8 @@
+/* for loop + modern += compound assignment */
+sumfor(n) {
+	auto s, i;
+	s = 0;
+	for (i = 1; i <= n; i += 1)
+		s += i;
+	return(s);
+}

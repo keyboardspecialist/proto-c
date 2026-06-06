@@ -1,0 +1,25 @@
+/* repeat + break, for + next(continue), do-while */
+firstmul(n, m) {
+	auto k;
+	k = n;
+	repeat {
+		k += 1;
+		if (k % m == 0) break;
+	}
+	return(k);
+}
+countodd(n) {
+	auto i, c;
+	c = 0;
+	for (i = 1; i <= n; i += 1) {
+		if (i % 2 == 0) next;
+		c += 1;
+	}
+	return(c);
+}
+dowhile(n) {
+	auto s, i;
+	s = 0; i = 0;
+	do { i += 1; s += i; } while (i < n);
+	return(s);
+}

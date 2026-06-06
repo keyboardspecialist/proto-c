@@ -1,0 +1,8 @@
+# build artifacts
+*.o
+cfront-bw
+cfront-bw.mjs
+cfront-bw.wasm
+tests/*.wat
+tests/*.wasm
+.DS_Store
