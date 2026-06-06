@@ -6,6 +6,22 @@ of `c89-1120`**: B's value model is identical to that 1972 C dialect's, so the
 expression engine and the whole backend are reused verbatim and only the
 B-specific surface is new.
 
+## Dialect
+
+b72 targets the **1972 PDP-11 B** of Thompson's *kbman* (`'*'` escapes, `'*e'`
+(EOT) string terminator, old-form `=+` assignment, fall-through `switch` with no
+`break`/`default`, `while`+`goto` as the only loops). That is why the museum
+extension is `.b72`.
+
+A **later strand** — Waterloo B for the Honeywell 6000/66 (R.P. Gurd, 1978;
+compiler by R. Braga) and its descendant GCOS8 B (1998) — is a substantially
+richer, distinct dialect and would be a *separate* compiler (`b-waterloo`), not
+a tweak. Per its own manual it adds, over the 1972 original: `for` / `do-while`
+/ `repeat`, `break` / `next`, `switch` with `default` and range cases, real
+floating point (`#+` etc.), proper `&&` / `||`, manifest constants, `%file`
+inclusion and `#`-directives, modern `op=` assignment, NUL (not EOT) string
+terminators, and 4-chars/word packing (36-bit words).
+
 ## What's B-specific vs reused
 
 Reused **byte-identical** from `../c89-1120`:
