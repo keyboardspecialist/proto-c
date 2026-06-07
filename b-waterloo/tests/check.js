@@ -53,6 +53,10 @@ e = build('sw');
 ok([32, 53, 120, 90, 10, 200, 33].map(c => String.fromCharCode(e.kind(c))).join("") === "SDLLCHP",
 	'switch single/range/relational-bound/fallthrough/default : kind');
 
+// dotted names (Waterloo allows '.' in identifiers)
+e = build('dot');
+ok(e["sq.it"](6) === 36, "dotted names: sq.it(6)=36 with local my.val");
+
 // f32 floats via #-operators
 e = build('float');
 ok(near(asF32(e.fadd()), 3.75), '#+ : 1.5 #+ 2.25 = 3.75');

@@ -1,0 +1,6 @@
+/* Waterloo B allows '.' in names (a-z A-Z 0-9 _ .), e.g. read.char, .tslog */
+sq.it(x) {
+	auto my.val;
+	my.val = x * x;
+	return(my.val);
+}
