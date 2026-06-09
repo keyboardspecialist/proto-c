@@ -1,0 +1,9 @@
+# build artifacts
+*.o
+cfront-unix6
+cfront-cref74
+cfront-cref75
+# generated wasm/wat from the test suite
+tests/*.wasm
+tests/*.wat
+.DS_Store
