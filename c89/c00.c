@@ -329,6 +329,12 @@ int mapch(c)
 		case 'r':
 			return ('\r');
 
+		case 'b':
+			return ('\b');
+
+		case 'f':
+			return ('\f');
+
 		case '\n':
 			line++;
 			return ('\n');
