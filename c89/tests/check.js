@@ -83,5 +83,62 @@ ok([0,1,5,10].every((n,i) => e.sumto(n) === [0,0,10,45][i]), 'goto loop sumto');
 ok(e.land(1,2) === 1 && e.land(1,0) === 0, 'logical & (1972 semantics)');
 ok(e.absx(-5) === 5 && e.absx(7) === 7, 'ternary absx');
 
+// regression: a switch case body over 1KB once truncated in cg() (fixed tmp[]).
+e = build('swbig').exports;
+ok(e.swbig(0) === 820 && e.swbig(5) === 0, 'big switch case (>1KB segment) not truncated');
+
+// regression: goto exiting a switch, with a >1KB case body (the Duff attempt bug).
+e = build('gotosw').exports;
+ok([0,1,2,9].every((n,i) => e.gotosw(n) === [465,2,103,100][i]), 'goto out of switch + big case body');
+
+// a label INSIDE a switch is rejected (switch re-entry is unrepresentable here).
+// cfront exits 0 even on error, so capture stderr (1>/dev/null keeps only it).
+const labErr = cp.execSync(
+	`${CFRONT} ${path.join(DIR, 'labinsw.c')} 2>&1 1>/dev/null || true`, { encoding: 'utf8' });
+ok(/label inside switch/.test(labErr), 'label inside switch is diagnosed, not miscompiled');
+
+// a case nested in a loop within a switch is rejected (Duff do-while form).
+const loopErr = cp.execSync(
+	`${CFRONT} ${path.join(DIR, 'caseinloop.c')} 2>&1 1>/dev/null || true`, { encoding: 'utf8' });
+ok(/case inside a loop/.test(loopErr), 'case inside a loop in switch is diagnosed');
+
+// printf: the compiler marshals varargs to a buffer of 8-byte slots; the host
+// walks the format, reading an i32 or f64 per conversion. Pointers are byte
+// addresses here (unlike B's word indices).
+function buildIO(name) {
+	const c = path.join(DIR, `${name}.c`);
+	const wat = path.join(DIR, `${name}.wat`);
+	const wasm = path.join(DIR, `${name}.wasm`);
+	fs.writeFileSync(wat, cp.execSync(`${CFRONT} ${c}`));
+	cp.execSync(`${WAT2WASM} ${wat} -o ${wasm}`);
+	let inst = null, out = '';
+	const m = () => new Uint8Array(inst.exports.memory.buffer);
+	const dv = () => new DataView(inst.exports.memory.buffer);
+	const rdstr = (a) => { const mm = m(); a >>>= 0; let s = ''; while (mm[a]) s += String.fromCharCode(mm[a++]); return s; };
+	const env = {
+		printf: (fmt, argbuf, argc) => {
+			const mm = m(), v = dv(); let a = fmt >>> 0, sl = argbuf >>> 0;
+			const i32 = () => { const r = v.getInt32(sl, true); sl += 8; return r; };
+			const f64 = () => { const r = v.getFloat64(sl, true); sl += 8; return r; };
+			while (mm[a]) { const ch = mm[a++];
+				if (ch === 37) { const f = mm[a++];
+					if (f === 100) out += String(i32() | 0);
+					else if (f === 99) out += String.fromCharCode(i32() & 0xff);
+					else if (f === 115) out += rdstr(i32());
+					else if (f === 120) out += (i32() >>> 0).toString(16);
+					else if (f === 102) out += f64().toFixed(6);
+					else out += String.fromCharCode(f);
+				} else out += String.fromCharCode(ch);
+			}
+			return 0;
+		},
+	};
+	inst = new WebAssembly.Instance(new WebAssembly.Module(fs.readFileSync(wasm)), { env });
+	inst.exports.main();
+	return out;
+}
+ok(buildIO('printf') === 'n=42 c=X s=hi x=ff f=3.500000\n',
+	'printf %d/%c/%s/%x/%f marshalled (i32 + f64 slots)');
+
 console.log(fails ? `\n${fails} FAILED` : '\nall passed');
 process.exit(fails ? 1 : 0);

@@ -67,10 +67,13 @@ static char *lseg[MAXLSEG];
 static int   lsegc[MAXLSEG], lsegl[MAXLSEG];
 static int   nlseg, curlseg, inlabels;
 
-/* current-sink emit: switch segment -> label segment -> function body -> module */
+/* current-sink emit: switch segment -> label segment -> function body -> module.
+ * A whole segment is flushed with cg("%s", seg[i]); since segments routinely
+ * exceed 1 KB, re-render oversized output on the heap rather than truncate it. */
 void cg(char *fmt, ...)
 {
 	char tmp[1024];
+	char *p = tmp;
 	int n;
 	va_list ap;
 	va_start(ap, fmt);
@@ -78,16 +81,27 @@ void cg(char *fmt, ...)
 	va_end(ap);
 	if (n < 0)
 		return;
-	if (n >= (int) sizeof tmp)
-		n = sizeof tmp - 1;
+	if (n >= (int) sizeof tmp) {		/* didn't fit: re-render on the heap */
+		p = malloc(n + 1);
+		if (p == 0) {			/* out of memory: emit the truncation */
+			p = tmp;
+			n = sizeof tmp - 1;
+		} else {
+			va_start(ap, fmt);
+			vsnprintf(p, n + 1, fmt, ap);
+			va_end(ap);
+		}
+	}
 	if (inswitch)
-		bput(&seg[curseg], &segc[curseg], &segl[curseg], tmp, n);
+		bput(&seg[curseg], &segc[curseg], &segl[curseg], p, n);
 	else if (inlabels)
-		bput(&lseg[curlseg], &lsegc[curlseg], &lsegl[curlseg], tmp, n);
+		bput(&lseg[curlseg], &lsegc[curlseg], &lsegl[curlseg], p, n);
 	else if (infunc)
-		bput(&fbuf, &fcap, &flen, tmp, n);
+		bput(&fbuf, &fcap, &flen, p, n);
 	else
-		bput(&mbuf, &mcap, &mlen, tmp, n);
+		bput(&mbuf, &mcap, &mlen, p, n);
+	if (p != tmp)
+		free(p);
 }
 
 /* ---- function name tracking, for import generation ---- */
@@ -429,6 +443,23 @@ static int countargs(word *p)
 	return 1;
 }
 
+/* flatten a call argument tree (comma nodes) into out[], returning the count */
+static int flatargs(word *p, word **out, int max, int n)
+{
+	if (p == 0 || p[0] == 0)
+		return n;
+	if (p[0] == 9) {		/* comma */
+		n = flatargs((word *) p[3], out, max, n);
+		n = flatargs((word *) p[4], out, max, n);
+		return n;
+	}
+	if (n < max)
+		out[n++] = p;
+	return n;
+}
+
+static int pf_scratch;		/* lazily-allocated printf vararg buffer (byte addr) */
+
 static void loadof(word *p)
 {
 	if (tflt(p))
@@ -588,6 +619,30 @@ word *p;
 	{
 		word *fn = (word *) p[3];
 		namestr(&fn[5], buf);
+		/* printf is the one variadic library function. The wasm import ABI
+		 * is fixed-arity, so marshal the varargs (everything after the
+		 * format string) into a scratch buffer of 8-byte slots and call
+		 * printf(fmt, argbuf, argc). Each slot holds an i32 or an f64; the
+		 * host reads the width from the format conversion. Pointers are byte
+		 * addresses here (unlike B's word indices). */
+		if (strcmp(buf, "printf") == 0) {
+			word *args[32];
+			int na = flatargs((word *) p[4], args, 32, 0), k;
+			if (pf_scratch == 0)
+				pf_scratch = gdata(32 * 8);	/* up to 31 varargs */
+			for (k = 1; k < na; k++) {	/* spill args[1..] to memory */
+				int isf = tflt(args[k]);
+				cg("i32.const %d ", pf_scratch + (k - 1) * 8);
+				gexpr(args[k]);
+				cg(isf ? "f64.store " : "i32.store ");
+			}
+			if (na > 0) gexpr(args[0]); else cg("i32.const 0 ");	/* fmt */
+			cg("i32.const %d ", pf_scratch);	/* argbuf (byte addr) */
+			cg("i32.const %d ", na > 0 ? na - 1 : 0);	/* argc */
+			cg("call $printf ");
+			note_call("printf", 3);
+			return;
+		}
 		note_call(buf, countargs((word *) p[4]));
 		gargs((word *) p[4]);
 		cg("call $%s ", buf);
@@ -788,6 +843,15 @@ static void lab_newseg(void)
 
 void lab_define(id)
 {
+	if (inswitch) {		/* a goto target inside a switch needs to re-enter
+				 * the switch mid-chain; that is irreducible control
+				 * flow the segment dispatch cannot express, so the
+				 * $sw value would re-select the same partial entry
+				 * every iteration (silent miscompile -- e.g. Duff's
+				 * device). Reject it rather than emit wrong code. */
+		error("label inside switch is not supported");
+		return;
+	}
 	labid[nlab] = id;
 	labseg[nlab] = nlseg;
 	nlab++;
